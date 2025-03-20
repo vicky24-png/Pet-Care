@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Pet Care App</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: url('https://via.placeholder.com/1920x1080.png?text=Pet+Care+Background') no-repeat center center fixed;
+            background-size: cover;
+            margin: 0;
+            padding: 0;
+            color: #ffffff;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+        }
+        h1, h2 {
+            color: #f39c12;
+        }
+        form {
+            margin-bottom: 20px;
+        }
+        input[type="text"], input[type="date"], input[type="time"] {
+            padding: 10px;
+            margin: 10px 0;
+            width: 100%;
+            box-sizing: border-box;
+            border-radius: 5px;
+            border: none;
+        }
+        input[type="submit"] {
+            padding: 10px 20px;
+            background-color: #e67e22;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        input[type="submit"]:hover {
+            background-color: #d35400;
+        }
+        .pet-details {
+            border: 1px solid #ccc;
+            padding: 10px;
+            margin: 10px 0;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 5px;
+        }
+        .pet-details h3 {
+            margin: 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Pet Care App</h1>
+
+        <h2>Add a New Pet</h2>
+        <form id="addPetForm">
+            Name: <input type="text" id="petName" required><br>
+            Species: <input type="text" id="petSpecies" required><br>
+            Birthdate: <input type="date" id="petBirthdate" required><br>
+            <input type="submit" value="Add Pet">
+        </form>
+
+        <h3>Log Feeding</h3>
+        <form id="logFeedingForm">
+            Name: <input type="text" id="feedingName" required><br>
+            Time: <input type="time" id="feedingTime" required><br>
+            <input type="submit" value="Log Feeding">
+        </form>
+
+        <h3>Log Vet Appointment</h3>
+        <form id="logVetForm">
+            Name: <input type="text" id="vetName" required><br>
+            Date: <input type="date" id="vetDate" required><br>
+            Reason: <input type="text" id="vetReason" required><br>
+            <input type="submit" value="Log Vet Appointment">
+        </form>
+
+        <h3>Log Exercise</h3>
+        <form id="logExerciseForm">
+            Name: <input type="text" id="exerciseName" required><br>
+            Date: <input type="date" id="exerciseDate" required><br>
+            Activity: <input type="text" id="exerciseActivity" required><br>
+            <input type="submit" value="Log Exercise">
+        </form>
+
+        <h3>View Pet Details</h3>
+        <div id="petDetails"></div>
+    </div>
+
+    <script>
+        let petData = JSON.parse(localStorage.getItem('petData')) || {};
+
+        function saveData() {
+            localStorage.setItem('petData', JSON.stringify(petData));
+        }
+
+        function alertMessage(message) {
+            alert(message);
+        }
+
+        document.getElementById('addPetForm').addEventListener('submit', function (event) {
+            event.preventDefault();
+            const name = document.getElementById('petName').value.trim();
+            const species = document.getElementById('petSpecies').value.trim();
+            const birthdate = document.getElementById('petBirthdate').value;
+
+            if (!name || !species || !birthdate) {
+                alertMessage("Please fill in all fields.");
+                return;
+            }
+
+            if (!petData[name]) {
+                petData[name] = {
+                    species: species,
+                    birthdate: birthdate,
+                    feeding_schedule: [],
+                    vet_appointments: [],
+                    exercise_logs: []
+                };
+                saveData();
+                displayPetDetails();
+                event.target.reset();
+            } else {
+                alertMessage("Pet already exists.");
+            }
+        });
+
+        function logEvent(formId, nameId, eventType, field, extraFields = {}) {
+            document.getElementById(formId).addEventListener('submit', function (event) {
+                event.preventDefault();
+                const name = document.getElementById(nameId).value.trim();
+
+                if (!petData[name]) {
+                    alertMessage("Pet not found. Please add the pet first.");
+                    return;
+                }
+
+                let eventData = {};
+                for (const key in extraFields) {
+                    eventData[key] = document.getElementById(extraFields[key]).value;
+                }
+
+                if (eventData[Object.keys(extraFields)[0]]) {
+                    petData[name][field].push(eventData);
+                    saveData();
+                    displayPetDetails();
+                    event.target.reset();
+                } else {
+                    alertMessage("Please provide all details.");
+                }
+            });
+        }
+
+        logEvent('logFeedingForm', 'feedingName', 'Feeding', 'feeding_schedule', { time: 'feedingTime' });
+        logEvent('logVetForm', 'vetName', 'Vet Appointment', 'vet_appointments', { date: 'vetDate', reason: 'vetReason' });
+        logEvent('logExerciseForm', 'exerciseName', 'Exercise', 'exercise_logs', { date: 'exerciseDate', activity: 'exerciseActivity' });
+
+        function displayPetDetails() {
+            const petDetailsDiv = document.getElementById('petDetails');
+            petDetailsDiv.innerHTML = '';
+
+            for (let name in petData) {
+                const pet = petData[name];
+                const petDiv = document.createElement('div');
+                petDiv.classList.add('pet-details');
+
+                petDiv.innerHTML = `
+                    <h3>${name}</h3>
+                    <p>Species: ${pet.species}</p>
+                    <p>Birthdate: ${pet.birthdate}</p>
+                    <h4>Feeding Schedule:</h4>
+                    <ul>${pet.feeding_schedule.map(time => `<li>${time.time}</li>`).join('')}</ul>
+                    <h4>Vet Appointments:</h4>
+                    <ul>${pet.vet_appointments.map(appointment => `<li>${appointment.date}: ${appointment.reason}</li>`).join('')}</ul>
+                    <h4>Exercise Logs:</h4>
+                    <ul>${pet.exercise_logs.map(log => `<li>${log.date}: ${log.activity}</li>`).join('')}</ul>
+                `;
+
+                petDetailsDiv.appendChild(petDiv);
+            }
+        }
+
+        displayPetDetails();
+    </script>
+</body>
+</html>
